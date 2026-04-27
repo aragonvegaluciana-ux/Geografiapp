@@ -54,6 +54,27 @@ body { background-color: var(--color-bg); color: var(--color-text); overflow-x: 
 .nav-links li.nav-danger:hover { background-color: #fff5f5; color: var(--color-danger-dark); }
 .nav-links li.nav-danger i { color: var(--color-danger); }
 
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 24px;
+    border-top: 2px solid var(--color-border);
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.sidebar-footer p {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.sidebar-footer .school {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* Main Content */
 .content { flex: 1; margin-left: var(--sidebar-width); margin-right: 380px; padding: 32px; max-width: 1000px; }
 .view { display: none; }
@@ -473,6 +494,7 @@ body.dark-mode .badge-item { background: #1a1a1a; }
     .nav-links { display: flex; width: 100%; justify-content: space-around; }
     .nav-links li span { display: none; }
     .logo { display: none; }
+    .sidebar-footer { display: none; }
     .content { margin-left: 0; padding-bottom: 100px; }
 }
 
