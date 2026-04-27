@@ -490,12 +490,134 @@ body.dark-mode .badge-item { background: #1a1a1a; }
 @keyframes slideDown { from { transform: translate(-50%, -100%); } to { transform: translate(-50%, 0); } }
 
 @media (max-width: 768px) {
-    .sidebar { width: 100%; height: 70px; bottom: 0; top: auto; flex-direction: row; border-right: none; border-top: 2px solid var(--color-border); }
-    .nav-links { display: flex; width: 100%; justify-content: space-around; }
-    .nav-links li span { display: none; }
-    .logo { display: none; }
-    .sidebar-footer { display: none; }
-    .content { margin-left: 0; padding-bottom: 100px; }
+    .sidebar {
+        width: 100%;
+        height: 72px;
+        bottom: 0;
+        top: auto;
+        flex-direction: row;
+        border-right: none;
+        border-top: 2px solid var(--color-border);
+        padding: 0;
+        justify-content: space-around;
+        align-items: center;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    }
+
+    .nav-links {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        justify-content: space-around;
+        align-items: center;
+        margin: 0;
+    }
+
+    .nav-links li {
+        margin-bottom: 0;
+        padding: 10px;
+        flex-direction: column;
+        gap: 4px;
+        border: none !important;
+        background: none !important;
+    }
+
+    .nav-links li i {
+        width: 28px;
+        height: 28px;
+    }
+
+    .nav-links li span {
+        display: block;
+        font-size: 10px;
+        text-transform: none;
+    }
+
+    .nav-links li.active {
+        color: var(--color-secondary);
+    }
+
+    .logo, .sidebar-footer {
+        display: none;
+    }
+
+    .right-panel {
+        display: none;
+    }
+
+    .content {
+        margin-left: 0;
+        margin-right: 0;
+        padding: 16px;
+        padding-bottom: 100px;
+        max-width: 100%;
+    }
+
+    .stats-bar {
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .stat-item {
+        font-size: 16px;
+        background: #f7f7f7;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+
+    /* Lesson UI adjustments */
+    #view-lesson {
+        padding-top: 20px;
+    }
+
+    .lesson-header {
+        gap: 10px;
+    }
+
+    .lesson-footer {
+        padding: 16px 20px;
+    }
+
+    .exercise-container h2 {
+        font-size: 22px;
+    }
+
+    /* Success View */
+    .success-stats {
+        gap: 10px;
+    }
+
+    .success-card {
+        padding: 12px;
+    }
+
+    .success-card .value {
+        font-size: 18px;
+    }
+
+    .success-mascot {
+        width: 150px;
+        height: 150px;
+    }
+
+    /* Hide nav during lessons on mobile */
+    #app.in-lesson .sidebar {
+        display: none;
+    }
+
+    #app.in-lesson .content {
+        padding-bottom: 20px;
+    }
+
+    .profile-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .badges-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Dark Mode Overrides */

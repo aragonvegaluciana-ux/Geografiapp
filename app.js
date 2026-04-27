@@ -458,8 +458,18 @@ class App {
     switchView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const view = document.getElementById(`view-${viewId}`);
+        const appContainer = document.getElementById('app');
+
         if (view) {
             view.classList.add('active');
+            
+            // Toggle lesson mode class for layout adjustments
+            if (viewId === 'lesson' || viewId === 'success') {
+                appContainer.classList.add('in-lesson');
+            } else {
+                appContainer.classList.remove('in-lesson');
+            }
+
             if (viewId === 'leaderboard') this.renderLeaderboard();
             if (viewId === 'profile') this.renderProfile();
             if (viewId === 'shop') this.renderShop();
