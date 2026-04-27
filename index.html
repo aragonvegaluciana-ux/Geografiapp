@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeografíApp | Aprende Geografía Jugando</title>
+    <meta name="description" content="Aprende países, capitales y climas del mundo con GeografíApp, la plataforma educativa interactiva estilo Duolingo.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🌍</span>
+                <span class="logo-text">GeografíApp</span>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-page="learn">
+                    <i data-lucide="home"></i>
+                    <span>Aprender</span>
+                </li>
+                <li data-page="profile">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </li>
+                <li data-page="leaderboard">
+                    <i data-lucide="trophy"></i>
+                    <span>Clasificación</span>
+                </li>
+                <li data-page="shop">
+                    <i data-lucide="shopping-bag"></i>
+                    <span>Tienda</span>
+                </li>
+                <li data-page="more">
+                    <i data-lucide="more-horizontal"></i>
+                    <span>Más</span>
+                </li>
+                <li id="nav-reset" class="nav-danger">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>Reiniciar</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content" id="main-content">
+            <!-- View: Learn (Path) -->
+            <div id="view-learn" class="view active">
+                <header class="view-header">
+                    <div class="stats-bar">
+                        <div class="stat-item">
+                            <span class="stat-icon">🔥</span>
+                            <span id="streak-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">💎</span>
+                            <span id="gem-count">200</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon heart">❤️</span>
+                            <span id="life-count">5</span>
+                        </div>
+                    </div>
+                </header>
+                
+                <div class="path-container" id="path-container">
+                    <!-- Path nodes will be injected here -->
+                </div>
+            </div>
+
+            <!-- View: Exercise (Lesson) -->
+            <div id="view-lesson" class="view">
+                <div class="lesson-header">
+                    <button id="exit-lesson" class="btn-icon">
+                        <i data-lucide="x"></i>
+                    </button>
+                    <div class="progress-container">
+                        <div id="lesson-progress" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="hearts-display">
+                        <span id="phase-indicator" class="phase-badge">Fase 1/3</span>
+                        <i data-lucide="heart" class="heart-icon filled"></i>
+                        <span id="current-lives">5</span>
+                    </div>
+                </div>
+
+                <div class="exercise-container" id="exercise-container">
+                    <!-- Exercise content will be injected here -->
+                </div>
+
+                <footer class="lesson-footer">
+                    <div id="feedback-area" class="feedback-area hidden">
+                        <div class="feedback-content">
+                            <div class="feedback-icon"></div>
+                            <div class="feedback-text">
+                                <h3 id="feedback-title"></h3>
+                                <p id="feedback-msg"></p>
+                            </div>
+                        </div>
+                        <button id="next-exercise" class="btn-primary">Continuar</button>
+                    </div>
+                    <button id="check-answer" class="btn-primary">Comprobar</button>
+                </footer>
+            </div>
+
+            <!-- View: Success Modal -->
+            <div id="view-success" class="view">
+                <div class="success-content">
+                    <div class="success-stats">
+                        <div class="success-card">
+                            <span class="label">LECCIÓN COMPLETADA</span>
+                            <span class="value">+50 XP</span>
+                        </div>
+                        <div class="success-card">
+                            <span class="label">PRECISIÓN</span>
+                            <span class="value" id="precision-value">100%</span>
+                        </div>
+                        <div class="success-card gems-won">
+                            <span class="label">GEMAS GANADAS</span>
+                            <span class="value" id="gems-earned-value">+0 Gemas</span>
+                        </div>
+                    </div>
+                    <img src="assets/mascot.png" alt="Geo Success" class="success-mascot">
+                    <h2>¡Increíble trabajo!</h2>
+                    <p>Has aprendido mucho hoy sobre geografía.</p>
+                    <button id="success-continue" class="btn-primary">Finalizar</button>
+                </div>
+            </div>
+
+            <!-- View: Leaderboard -->
+            <div id="view-leaderboard" class="view">
+                <!-- Content injected via JS -->
+            </div>
+
+            <!-- View: Profile -->
+            <div id="view-profile" class="view">
+                <!-- Content injected via JS -->
+            </div>
+
+            <!-- View: Shop -->
+            <div id="view-shop" class="view">
+                <!-- Content injected via JS -->
+            </div>
+
+            <!-- View: More -->
+            <div id="view-more" class="view">
+                <!-- Content injected via JS -->
+            </div>
+        </main>
+
+        <!-- Right Panel (Desktop) -->
+        <aside class="right-panel">
+            <div class="card promo-card">
+                <img src="assets/mascot.png" alt="Mascota Geo" class="mascot-img">
+                <h3>¡Hola, soy Geo!</h3>
+                <p>¿Listo para explorar el mundo hoy?</p>
+                <button class="btn-secondary">Empezar Lección</button>
+            </div>
+            <div class="card stats-card">
+                <h3>Estadísticas</h3>
+                <div class="mini-stat">
+                    <span>Nivel</span>
+                    <strong>1</strong>
+                </div>
+                <div class="mini-stat">
+                    <span>XP Total</span>
+                    <strong>0</strong>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
