@@ -156,13 +156,13 @@ class MusicManager {
         this.isPlaying = true;
 
         // Entrada de volumen más presente
-        this.masterGain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + 2);
+        this.masterGain.gain.linearRampToValueAtTime(0.6, this.ctx.currentTime + 2);
 
         // Capa 1: Bajos profundos y estables (C2, G2)
-        [65.41, 98.00].forEach((f, i) => this.createPad(f, i * 0.5, 'sine', 0.1));
+        [65.41, 98.00].forEach((f, i) => this.createPad(f, i * 0.5, 'sine', 0.2));
 
         // Capa 2: Armonía media envolvente (C3, E3, G3)
-        [130.81, 164.81, 196.00].forEach((f, i) => this.createPad(f, i * 0.8, 'triangle', 0.05));
+        [130.81, 164.81, 196.00].forEach((f, i) => this.createPad(f, i * 0.8, 'triangle', 0.1));
 
         // Iniciar la melodía "aventurera"
         this.playMelody();
@@ -221,7 +221,7 @@ class MusicManager {
         filter.frequency.setValueAtTime(1200, now);
 
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.12, now + 0.1);
+        gain.gain.linearRampToValueAtTime(0.24, now + 0.1);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
 
         osc.connect(filter);
@@ -250,7 +250,7 @@ class MusicManager {
             osc.frequency.setValueAtTime(freq, now + i * 0.1);
             
             gain.gain.setValueAtTime(0, now + i * 0.1);
-            gain.gain.linearRampToValueAtTime(0.2, now + i * 0.1 + 0.05);
+            gain.gain.linearRampToValueAtTime(0.4, now + i * 0.1 + 0.05);
             gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.4);
             
             osc.connect(gain);
@@ -272,7 +272,7 @@ class MusicManager {
         osc.frequency.exponentialRampToValueAtTime(70, now + 0.3);
         
         gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
         gain.gain.linearRampToValueAtTime(0, now + 0.3);
         
         const filter = this.ctx.createBiquadFilter();
