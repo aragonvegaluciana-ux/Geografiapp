@@ -39,51 +39,78 @@ function generateLesson(levelNumber) {
     
     const exercises = [];
     const difficultyLimit = Math.min(5, 1 + Math.floor(levelNumber / 15));
+    const targetCountries = geographyPool.countries.filter(c => c.difficulty <= difficultyLimit);
+    const usedQuestions = new Set();
 
     for (let p = 1; p <= numPhases; p++) {
         for (let i = 0; i < phaseSize; i++) {
-            // Aumentar ligeramente la dificultad interna de la fase
-            const type = Math.random() > 0.4 ? 'multiple-choice' : 'true-false';
-            const targetCountries = geographyPool.countries.filter(c => c.difficulty <= difficultyLimit);
-            const country = targetCountries[Math.floor(Math.random() * targetCountries.length)];
+            let exercise = null;
+            let attempts = 0;
             
-            if (type === 'multiple-choice') {
-                const questionType = Math.random();
-                if (questionType < 0.5) {
-                    const options = [country.capital];
-                    while(options.length < 4) {
-                        const opt = geographyPool.countries[Math.floor(Math.random() * geographyPool.countries.length)].capital;
-                        if (!options.includes(opt)) options.push(opt);
+            while (!exercise && attempts < 100) {
+                attempts++;
+                const type = Math.random() > 0.4 ? 'multiple-choice' : 'true-false';
+                const country = targetCountries[Math.floor(Math.random() * targetCountries.length)];
+                let questionStr = "";
+                let tempExercise = null;
+                
+                if (type === 'multiple-choice') {
+                    const questionType = Math.random();
+                    if (questionType < 0.5) {
+                        questionStr = `¿Cuál es la capital de ${country.name}?`;
+                        if (!usedQuestions.has(questionStr) || attempts > 80) {
+                            const options = [country.capital];
+                            while(options.length < 4) {
+                                const opt = geographyPool.countries[Math.floor(Math.random() * geographyPool.countries.length)].capital;
+                                if (!options.includes(opt)) options.push(opt);
+                            }
+                            tempExercise = {
+                                type: 'multiple-choice',
+                                phase: p,
+                                question: `(Fase ${p}) ${questionStr}`,
+                                options: options.sort(() => Math.random() - 0.5),
+                                answer: country.capital
+                            };
+                        }
+                    } else {
+                        questionStr = `¿En qué continente está ${country.name}?`;
+                        if (!usedQuestions.has(questionStr) || attempts > 80) {
+                            const options = [...geographyPool.continents].sort(() => Math.random() - 0.5).slice(0, 4);
+                            if (!options.includes(country.continent)) options[0] = country.continent;
+                            tempExercise = {
+                                type: 'multiple-choice',
+                                phase: p,
+                                question: `(Fase ${p}) ${questionStr}`,
+                                options: options.sort(() => Math.random() - 0.5),
+                                answer: country.continent
+                            };
+                        }
                     }
-                    exercises.push({
-                        type: 'multiple-choice',
-                        phase: p,
-                        question: `(Fase ${p}) ¿Cuál es la capital de ${country.name}?`,
-                        options: options.sort(() => Math.random() - 0.5),
-                        answer: country.capital
-                    });
                 } else {
-                    const options = [...geographyPool.continents].sort(() => Math.random() - 0.5).slice(0, 4);
-                    if (!options.includes(country.continent)) options[0] = country.continent;
-                    exercises.push({
-                        type: 'multiple-choice',
-                        phase: p,
-                        question: `(Fase ${p}) ¿En qué continente está ${country.name}?`,
-                        options: options.sort(() => Math.random() - 0.5),
-                        answer: country.continent
-                    });
+                    const isFactTrue = Math.random() > 0.5;
+                    const fakeCapital = geographyPool.countries[Math.floor(Math.random() * geographyPool.countries.length)].capital;
+                    const displayCapital = isFactTrue ? country.capital : fakeCapital;
+                    questionStr = `¿${displayCapital} es la capital de ${country.name}?`;
+                    
+                    if (!usedQuestions.has(questionStr) || attempts > 80) {
+                        tempExercise = {
+                            type: 'true-false',
+                            phase: p,
+                            question: `(Fase ${p}) ${questionStr}`,
+                            options: ['Verdadero', 'Falso'],
+                            answer: (displayCapital === country.capital) ? 'Verdadero' : 'Falso'
+                        };
+                    }
                 }
-            } else {
-                const isFactTrue = Math.random() > 0.5;
-                const fakeCapital = geographyPool.countries[Math.floor(Math.random() * geographyPool.countries.length)].capital;
-                exercises.push({
-                    type: 'true-false',
-                    phase: p,
-                    question: `(Fase ${p}) ${isFactTrue ? `¿${country.capital} es la capital de ${country.name}?` : `¿${fakeCapital} es la capital de ${country.name}?`}`,
-                    options: ['Verdadero', 'Falso'],
-                    answer: isFactTrue ? (country.capital === country.capital ? 'Verdadero' : 'Falso') : (fakeCapital === country.capital ? 'Verdadero' : 'Falso')
-                });
-                if (!isFactTrue && fakeCapital === country.capital) exercises[exercises.length-1].answer = 'Verdadero';
+                
+                if (tempExercise) {
+                    usedQuestions.add(questionStr);
+                    exercise = tempExercise;
+                }
+            }
+            
+            if (exercise) {
+                exercises.push(exercise);
             }
         }
     }
