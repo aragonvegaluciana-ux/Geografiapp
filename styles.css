@@ -655,6 +655,10 @@ body.dark-mode .lesson-footer,
 body.dark-mode .node-label,
 body.dark-mode .setting-card { background-color: #1a1a1a; }
 
+body.dark-mode .shop-gems-balance,
+body.dark-mode .btn-buy { background-color: #222; color: #eee; }
+body.dark-mode .inventory-section { background-color: #1a1a1a; }
+
 body.dark-mode .leaderboard-item:hover,
 body.dark-mode .option-card:hover { background-color: #222; }
 
