@@ -1033,6 +1033,7 @@ class App {
         } else {
             this.music.playError();
             this.stats.lives--;
+            this.saveStats();
             this.updateStatsDisplay();
             if (this.stats.lives <= 0) {
                 setTimeout(() => {
@@ -1057,6 +1058,10 @@ class App {
         if (!this.stats.completedLessons.includes(this.currentLesson.id)) {
             this.stats.completedLessons.push(this.currentLesson.id);
         }
+        
+        // Actualizar nivel basado en progreso
+        this.stats.level = this.stats.completedLessons.length + 1;
+        
         this.stats.streak = 1; 
         
         // Calcular precisión
