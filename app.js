@@ -686,6 +686,31 @@ class App {
                         <span class="slider round"></span>
                     </label>
                 </div>
+
+                <div class="setting-card">
+                    <div class="setting-info">
+                        <i data-lucide="download"></i>
+                        <div>
+                            <h4>Guardar Datos</h4>
+                            <p>Descarga tu progreso localmente</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="padding: 0.5rem 1rem; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; width: auto;" onclick="appInstance.exportData()">Exportar</button>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-info">
+                        <i data-lucide="upload"></i>
+                        <div>
+                            <h4>Cargar Datos</h4>
+                            <p>Restaura tu progreso desde un archivo</p>
+                        </div>
+                    </div>
+                    <label class="btn-primary" style="padding: 0.5rem 1rem; cursor: pointer; border-radius: 8px; font-weight: bold; text-align: center; display: inline-block;">
+                        Importar
+                        <input type="file" accept=".json" style="display: none;" onchange="appInstance.importData(event)">
+                    </label>
+                </div>
             </div>
 
             <div class="languages-reference">
@@ -739,6 +764,47 @@ class App {
         } else {
             this.music.stop();
         }
+    }
+
+    exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.stats));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "geografiapp_progreso.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedStats = JSON.parse(e.target.result);
+                // Basic validation
+                if (importedStats && typeof importedStats.xp !== 'undefined') {
+                    this.stats = {
+                        ...initialUserStats,
+                        ...importedStats,
+                        inventory: {
+                            ...initialUserStats.inventory,
+                            ...(importedStats.inventory || {})
+                        }
+                    };
+                    this.saveStats();
+                    alert("¡Progreso cargado exitosamente!");
+                    window.location.reload();
+                } else {
+                    alert("El archivo no parece ser un guardado válido.");
+                }
+            } catch (error) {
+                alert("Hubo un error al leer el archivo.");
+            }
+        };
+        reader.readAsText(file);
     }
 
     renderShop() {
