@@ -528,6 +528,16 @@ class App {
         if (resetNavBtn) {
             resetNavBtn.addEventListener('click', () => this.resetData());
         }
+
+        // Start Next Lesson (Promo Card)
+        const startNextBtn = document.getElementById('btn-start-next-lesson');
+        if (startNextBtn) {
+            startNextBtn.addEventListener('click', () => {
+                const nextLevel = this.stats.completedLessons.length + 1;
+                const lesson = generateLesson(nextLevel);
+                this.startLesson(lesson);
+            });
+        }
     }
 
     switchView(viewId) {
