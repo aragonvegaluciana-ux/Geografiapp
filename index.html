@@ -53,6 +53,32 @@
 
         <!-- Main Content Area -->
         <main class="content" id="main-content">
+            <!-- View: Onboarding (Profile Creation) -->
+            <div id="view-onboarding" class="view">
+                <div class="onboarding-container" style="text-align: center; max-width: 400px; margin: 50px auto; padding: 2rem; background: var(--bg-card); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <img src="assets/mascot.png" alt="Geo" style="width: 120px; margin-bottom: 1rem;">
+                    <h2>¡Bienvenido a GeografíApp!</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Crea tu perfil para empezar a aprender y guardar tu progreso.</p>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 0.5rem; text-align: left;">Tu Nombre:</label>
+                        <input type="text" id="onboarding-username" placeholder="Ej. Explorador" style="width: 100%; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 12px; font-size: 1rem; font-family: inherit;">
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem; text-align: left;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Elige tu Avatar:</label>
+                        <div class="avatar-selection" style="display: flex; gap: 10px; justify-content: space-between;">
+                            <div class="avatar-option selected" data-avatar="🚀" style="font-size: 2rem; padding: 10px; border: 2px solid var(--primary-color); border-radius: 12px; cursor: pointer; background: var(--bg-main);">🚀</div>
+                            <div class="avatar-option" data-avatar="🌍" style="font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: var(--bg-main);">🌍</div>
+                            <div class="avatar-option" data-avatar="🎓" style="font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: var(--bg-main);">🎓</div>
+                            <div class="avatar-option" data-avatar="🌟" style="font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: var(--bg-main);">🌟</div>
+                        </div>
+                    </div>
+
+                    <button id="btn-create-profile" class="btn-primary" style="width: 100%;">Crear Perfil y Jugar</button>
+                </div>
+            </div>
+
             <!-- View: Learn (Path) -->
             <div id="view-learn" class="view active">
                 <header class="view-header">

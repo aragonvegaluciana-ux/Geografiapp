@@ -315,6 +315,8 @@ class MusicManager {
 }
 
 const initialUserStats = {
+    username: null,
+    avatar: '🚀',
     xp: 0,
     lives: 5,
     streak: 0,
@@ -407,6 +409,24 @@ class App {
     }
 
     init() {
+        if (!this.stats.username) {
+            // Show onboarding
+            const sidebar = document.getElementById('sidebar');
+            const rightPanel = document.querySelector('.right-panel');
+            if(sidebar) sidebar.style.display = 'none';
+            if(rightPanel) rightPanel.style.display = 'none';
+            
+            this.setupOnboarding();
+            this.switchView('onboarding');
+            this.applyTheme();
+            return;
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const rightPanel = document.querySelector('.right-panel');
+        if(sidebar) sidebar.style.display = '';
+        if(rightPanel) rightPanel.style.display = '';
+
         this.renderPath();
         this.setupEventListeners();
         this.updateStatsDisplay();
@@ -423,6 +443,34 @@ class App {
         };
         document.addEventListener('click', startMusic);
         document.addEventListener('keydown', startMusic);
+    }
+
+    setupOnboarding() {
+        let selectedAvatar = '🚀';
+        document.querySelectorAll('.avatar-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.avatar-option').forEach(o => {
+                    o.classList.remove('selected');
+                    o.style.borderColor = 'transparent';
+                });
+                opt.classList.add('selected');
+                opt.style.borderColor = 'var(--primary-color)';
+                selectedAvatar = opt.getAttribute('data-avatar');
+            });
+        });
+
+        document.getElementById('btn-create-profile').addEventListener('click', () => {
+            const nameInput = document.getElementById('onboarding-username').value.trim();
+            if (!nameInput) {
+                alert('Por favor, ingresa tu nombre para continuar.');
+                return;
+            }
+            this.stats.username = nameInput;
+            this.stats.avatar = selectedAvatar;
+            this.saveStats();
+            
+            window.location.reload();
+        });
     }
 
     applyTheme() {
@@ -552,7 +600,11 @@ class App {
 
         const sortedRanking = [...ranking];
         const userRank = sortedRanking.find(r => r.name === 'Tú');
-        if (userRank) userRank.xp = this.stats.xp;
+        if (userRank) {
+            userRank.xp = this.stats.xp;
+            userRank.name = this.stats.username || 'Tú';
+            userRank.avatar = this.stats.avatar || '🚀';
+        }
         sortedRanking.sort((a, b) => b.xp - a.xp);
 
         view.innerHTML = `
@@ -573,7 +625,7 @@ class App {
                 <div class="leaderboard-list">
                     <div class="promotion-zone-label">Zona de Ascenso</div>
                     ${sortedRanking.map((player, index) => {
-                        const isUser = player.name === 'Tú';
+                        const isUser = player.name === (this.stats.username || 'Tú');
                         const isPromotion = index < 3;
                         return `
                             <div class="leaderboard-item ${isUser ? 'user-row' : ''} ${isPromotion ? 'promotion' : ''}">
@@ -605,8 +657,8 @@ class App {
 
         view.innerHTML = `
             <div class="profile-header">
-                <div class="profile-avatar">🚀</div>
-                <h2>Estudiante de Secundaria</h2>
+                <div class="profile-avatar">${this.stats.avatar || '🚀'}</div>
+                <h2>${this.stats.username || 'Estudiante'}</h2>
                 <p>Nivel ${this.stats.level} Explorador</p>
                 <div class="profile-league-badge">${this.stats.league}</div>
             </div>
