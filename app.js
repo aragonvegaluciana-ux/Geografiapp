@@ -31,26 +31,38 @@ const geographyPool = {
     mountains: ['Everest', 'K2', 'Aconcagua', 'Kilimanjaro', 'Mont Blanc']
 };
 
-function generateLesson(levelNumber) {
+function generateLesson(levelNumber, stats = null) {
     // Niveles más largos: base 9 ejercicios (3 fases de 3), aumenta con nivel
     const phaseSize = 3 + Math.floor(levelNumber / 15);
     const numPhases = 3;
     const totalExercises = phaseSize * numPhases;
     
     const exercises = [];
-    const difficultyLimit = Math.min(5, 1 + Math.floor(levelNumber / 15));
+    // Aumentar dificultad mucho más rápido (cada 3 niveles sube la dificultad máxima)
+    const difficultyLimit = Math.min(5, 1 + Math.floor((levelNumber - 1) / 3));
     const targetCountries = geographyPool.countries.filter(c => c.difficulty <= difficultyLimit);
-    const usedQuestions = new Set();
+    
+    const usedQuestionsLocal = new Set();
+    const globallySeen = stats && stats.seenQuestions ? new Set(stats.seenQuestions) : new Set();
 
     for (let p = 1; p <= numPhases; p++) {
         for (let i = 0; i < phaseSize; i++) {
             let exercise = null;
             let attempts = 0;
             
-            while (!exercise && attempts < 100) {
+            while (!exercise && attempts < 150) {
                 attempts++;
                 const type = Math.random() > 0.4 ? 'multiple-choice' : 'true-false';
-                const country = targetCountries[Math.floor(Math.random() * targetCountries.length)];
+                
+                // Dar prioridad a países de la dificultad actual para que se sienta el aumento de nivel
+                let country;
+                if (attempts < 50 && targetCountries.some(c => c.difficulty === difficultyLimit)) {
+                    const hardest = targetCountries.filter(c => c.difficulty === difficultyLimit);
+                    country = hardest[Math.floor(Math.random() * hardest.length)];
+                } else {
+                    country = targetCountries[Math.floor(Math.random() * targetCountries.length)];
+                }
+
                 let questionStr = "";
                 let tempExercise = null;
                 
@@ -58,7 +70,8 @@ function generateLesson(levelNumber) {
                     const questionType = Math.random();
                     if (questionType < 0.5) {
                         questionStr = `¿Cuál es la capital de ${country.name}?`;
-                        if (!usedQuestions.has(questionStr) || attempts > 80) {
+                        // Solo usar si no se ha usado localmente. Preferir preguntas no vistas globalmente.
+                        if (!usedQuestionsLocal.has(questionStr) && (!globallySeen.has(questionStr) || attempts > 80)) {
                             const options = [country.capital];
                             while(options.length < 4) {
                                 const opt = geographyPool.countries[Math.floor(Math.random() * geographyPool.countries.length)].capital;
@@ -68,19 +81,21 @@ function generateLesson(levelNumber) {
                                 type: 'multiple-choice',
                                 phase: p,
                                 question: `(Fase ${p}) ${questionStr}`,
+                                baseQuestion: questionStr, // Guardamos la pregunta sin la fase
                                 options: options.sort(() => Math.random() - 0.5),
                                 answer: country.capital
                             };
                         }
                     } else {
                         questionStr = `¿En qué continente está ${country.name}?`;
-                        if (!usedQuestions.has(questionStr) || attempts > 80) {
+                        if (!usedQuestionsLocal.has(questionStr) && (!globallySeen.has(questionStr) || attempts > 80)) {
                             const options = [...geographyPool.continents].sort(() => Math.random() - 0.5).slice(0, 4);
                             if (!options.includes(country.continent)) options[0] = country.continent;
                             tempExercise = {
                                 type: 'multiple-choice',
                                 phase: p,
                                 question: `(Fase ${p}) ${questionStr}`,
+                                baseQuestion: questionStr,
                                 options: options.sort(() => Math.random() - 0.5),
                                 answer: country.continent
                             };
@@ -92,11 +107,12 @@ function generateLesson(levelNumber) {
                     const displayCapital = isFactTrue ? country.capital : fakeCapital;
                     questionStr = `¿${displayCapital} es la capital de ${country.name}?`;
                     
-                    if (!usedQuestions.has(questionStr) || attempts > 80) {
+                    if (!usedQuestionsLocal.has(questionStr) && (!globallySeen.has(questionStr) || attempts > 80)) {
                         tempExercise = {
                             type: 'true-false',
                             phase: p,
                             question: `(Fase ${p}) ${questionStr}`,
+                            baseQuestion: questionStr,
                             options: ['Verdadero', 'Falso'],
                             answer: (displayCapital === country.capital) ? 'Verdadero' : 'Falso'
                         };
@@ -104,7 +120,7 @@ function generateLesson(levelNumber) {
                 }
                 
                 if (tempExercise) {
-                    usedQuestions.add(questionStr);
+                    usedQuestionsLocal.add(questionStr);
                     exercise = tempExercise;
                 }
             }
@@ -323,6 +339,7 @@ const initialUserStats = {
     level: 1,
     gems: 200,
     completedLessons: [],
+    seenQuestions: [],
     league: 'Bronce',
     inventory: {
         xpBoost: 0,
@@ -397,6 +414,7 @@ class App {
         return {
             ...initialUserStats,
             ...stats,
+            seenQuestions: stats.seenQuestions || [],
             inventory: {
                 ...initialUserStats.inventory,
                 ...(stats.inventory || {})
@@ -534,7 +552,7 @@ class App {
         if (startNextBtn) {
             startNextBtn.addEventListener('click', () => {
                 const nextLevel = this.stats.completedLessons.length + 1;
-                const lesson = generateLesson(nextLevel);
+                const lesson = generateLesson(nextLevel, this.stats);
                 this.startLesson(lesson);
             });
         }
@@ -594,7 +612,7 @@ class App {
 
             if (!isLocked) {
                 node.addEventListener('click', () => {
-                    const lesson = generateLesson(i);
+                    const lesson = generateLesson(i, this.stats);
                     this.startLesson(lesson);
                 });
             }
@@ -1057,6 +1075,13 @@ class App {
     finishLesson() {
         if (!this.stats.completedLessons.includes(this.currentLesson.id)) {
             this.stats.completedLessons.push(this.currentLesson.id);
+            
+            // Añadir las preguntas de esta lección al historial global
+            this.currentLesson.exercises.forEach(ex => {
+                if (ex.baseQuestion && !this.stats.seenQuestions.includes(ex.baseQuestion)) {
+                    this.stats.seenQuestions.push(ex.baseQuestion);
+                }
+            });
         }
         
         // Actualizar nivel basado en progreso
