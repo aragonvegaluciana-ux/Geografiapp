@@ -316,8 +316,20 @@ body.dark-mode .badge-item { background: #1a1a1a; }
     background-color: var(--color-primary); color: white; border: none; padding: 16px;
     border-radius: var(--radius); font-weight: 800; text-transform: uppercase;
     box-shadow: 0 4px 0 var(--color-primary-dark); cursor: pointer; width: 100%; max-width: 600px;
+    transition: var(--transition);
 }
-.btn-primary:disabled { background-color: #e5e5e5; box-shadow: 0 4px 0 #afafaf; cursor: not-allowed; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--color-primary-dark); }
+.btn-primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--color-primary-dark); }
+.btn-primary:disabled { background-color: #e5e5e5; box-shadow: 0 4px 0 #afafaf; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+    background-color: var(--color-secondary); color: white; border: none; padding: 16px;
+    border-radius: var(--radius); font-weight: 800; text-transform: uppercase;
+    box-shadow: 0 4px 0 var(--color-secondary-dark); cursor: pointer; width: 100%;
+    transition: var(--transition);
+}
+.btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--color-secondary-dark); }
+.btn-secondary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--color-secondary-dark); }
 
 .btn-danger {
     background-color: var(--color-danger); color: white; border: none; padding: 16px;
