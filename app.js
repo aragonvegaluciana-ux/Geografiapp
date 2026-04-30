@@ -1098,7 +1098,8 @@ class App {
         const curLives = document.getElementById('current-lives');
         const streakCount = document.getElementById('streak-count');
         const gemCount = document.getElementById('gem-count');
-        const xpDisplay = document.querySelector('.stats-card strong:last-child');
+        const xpDisplay = document.getElementById('right-panel-xp');
+        const levelDisplay = document.getElementById('right-panel-level');
 
         if (lifeCount) {
             lifeCount.innerText = this.stats.lives;
@@ -1108,6 +1109,7 @@ class App {
         if (streakCount) streakCount.innerText = this.stats.streak;
         if (gemCount) gemCount.innerText = this.stats.gems;
         if (xpDisplay) xpDisplay.innerText = this.stats.xp;
+        if (levelDisplay) levelDisplay.innerText = this.stats.level;
     }
 }
 

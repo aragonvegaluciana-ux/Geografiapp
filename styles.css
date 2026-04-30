@@ -76,9 +76,12 @@ body { background-color: var(--color-bg); color: var(--color-text); overflow-x: 
 }
 
 /* Main Content */
-.content { flex: 1; margin-left: var(--sidebar-width); margin-right: 380px; padding: 32px; max-width: 1000px; }
+.content { flex: 1; margin-left: var(--sidebar-width); margin-right: 380px; padding: 32px; max-width: 1000px; transition: margin 0.3s ease; }
 .view { display: none; }
 .view.active { display: block; animation: fadeIn 0.3s ease; }
+
+#app.in-lesson .right-panel { display: none; }
+#app.in-lesson .content { margin-right: 0; max-width: 100%; display: flex; flex-direction: column; align-items: center; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
