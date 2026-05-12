@@ -594,15 +594,15 @@ class App {
         if (!container) return;
         
         const completedCount = this.stats.completedLessons.length;
-        const totalToShow = completedCount + 5; // Siempre mostrar 5 niveles por delante
+        const totalToShow = Math.min(10, completedCount + 5); 
         
         container.innerHTML = `
             <div class="progress-details">
-                Has completado ${completedCount} lecciones infinitas
+                ${completedCount >= 10 ? '¡Has completado todos los niveles!' : `Has completado ${completedCount} lecciones`}
             </div>
         `;
 
-        for (let i = 1; i <= totalToShow; i++) {
+        for (let i = 1; i <= Math.min(10, totalToShow); i++) {
             const isCompleted = i <= completedCount;
             const isLocked = i > completedCount + 1;
             const lessonId = `lv-${i}`;
@@ -702,7 +702,7 @@ class App {
                     <button class="btn-edit" onclick="appInstance.showEditProfile()">
                         <i data-lucide="edit-3"></i> Editar Perfil
                     </button>
-                    ${this.stats.completedLessons.length >= 30 ? `
+                    ${this.stats.completedLessons.length >= 10 ? `
                         <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="appInstance.showDiploma()">
                             <i data-lucide="award"></i> Ver Diploma
                         </button>
@@ -730,10 +730,10 @@ class App {
             <div class="profile-achievements">
                 <h3>Tus Logros</h3>
                 <div class="badges-grid">
-                    ${this.renderBadge('Estrella de Explorador', '¡Has completado 5 niveles!', '⭐', this.stats.completedLessons.length >= 5, 'badge-star')}
-                    ${this.renderBadge('Corona de Maestro', '¡Completaste 20 niveles!', '👑', this.stats.completedLessons.length >= 20, 'badge-crown')}
+                    ${this.renderBadge('Estrella de Explorador', '¡Has completado 3 niveles!', '⭐', this.stats.completedLessons.length >= 3, 'badge-star')}
+                    ${this.renderBadge('Corona de Maestro', '¡Completaste 7 niveles!', '👑', this.stats.completedLessons.length >= 7, 'badge-crown')}
                     ${this.renderBadge('Cinta de Honor', 'Mantén una racha de 3 días', '🎖️', this.stats.streak >= 3, 'badge-honor')}
-                    ${this.renderBadge('Graduado Mundial', '¡Llegaste al Nivel 30!', '📜', this.stats.completedLessons.length >= 30, 'badge-honor')}
+                    ${this.renderBadge('Graduado Mundial', '¡Llegaste al Nivel 10!', '📜', this.stats.completedLessons.length >= 10, 'badge-honor')}
                 </div>
             </div>
         `;
@@ -1235,10 +1235,10 @@ class App {
 
         this.switchView('success');
 
-        // Verificar si es el nivel 30 para el diploma
-        if (this.stats.completedLessons.length === 30) {
+        // Verificar si es el nivel 10 para el diploma
+        if (this.stats.completedLessons.length === 10) {
             setTimeout(() => {
-                alert('¡FELICIDADES! Has alcanzado el Nivel 30. ¡Ya puedes descargar tu Diploma de Maestro Explorador en tu perfil!');
+                alert('¡FELICIDADES! Has alcanzado el Nivel 10. ¡Ya puedes descargar tu Diploma de Maestro Explorador en tu perfil!');
                 this.showDiploma();
             }, 1000);
         }
