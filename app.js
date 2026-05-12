@@ -489,6 +489,14 @@ class App {
             
             window.location.reload();
         });
+
+        // Event listeners for Diploma
+        document.getElementById('close-diploma').addEventListener('click', () => {
+            document.getElementById('diploma-overlay').classList.add('hidden');
+        });
+
+        document.getElementById('btn-download-img').addEventListener('click', () => this.downloadDiplomaImage());
+        document.getElementById('btn-download-pdf').addEventListener('click', () => this.downloadDiplomaPDF());
     }
 
     applyTheme() {
@@ -689,6 +697,17 @@ class App {
                 <h2>${this.stats.username || 'Estudiante'}</h2>
                 <p>Nivel ${this.stats.level} Explorador</p>
                 <div class="profile-league-badge">${this.stats.league}</div>
+                
+                <div class="profile-actions">
+                    <button class="btn-edit" onclick="appInstance.showEditProfile()">
+                        <i data-lucide="edit-3"></i> Editar Perfil
+                    </button>
+                    ${this.stats.completedLessons.length >= 30 ? `
+                        <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="appInstance.showDiploma()">
+                            <i data-lucide="award"></i> Ver Diploma
+                        </button>
+                    ` : ''}
+                </div>
             </div>
             <div class="profile-stats-grid">
                 <div class="stat-card">
@@ -714,10 +733,112 @@ class App {
                     ${this.renderBadge('Estrella de Explorador', '¡Has completado 5 niveles!', '⭐', this.stats.completedLessons.length >= 5, 'badge-star')}
                     ${this.renderBadge('Corona de Maestro', '¡Completaste 20 niveles!', '👑', this.stats.completedLessons.length >= 20, 'badge-crown')}
                     ${this.renderBadge('Cinta de Honor', 'Mantén una racha de 3 días', '🎖️', this.stats.streak >= 3, 'badge-honor')}
+                    ${this.renderBadge('Graduado Mundial', '¡Llegaste al Nivel 30!', '📜', this.stats.completedLessons.length >= 30, 'badge-honor')}
                 </div>
             </div>
         `;
         if (window.lucide) lucide.createIcons();
+    }
+
+    showEditProfile() {
+        const view = document.getElementById('view-profile');
+        const avatars = ['🚀', '🌍', '🎓', '🌟', '🦒', '🦁', '🧭', '🗺️', '🚁', '⛴️'];
+        
+        view.innerHTML = `
+            <div class="edit-profile-form">
+                <h3>Editar Perfil</h3>
+                <div class="form-group">
+                    <label>Tu Nombre:</label>
+                    <input type="text" id="edit-username" value="${this.stats.username}">
+                </div>
+                <div class="form-group">
+                    <label>Elige tu Avatar:</label>
+                    <div class="avatar-selection" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+                        ${avatars.map(a => `
+                            <div class="avatar-option ${this.stats.avatar === a ? 'selected' : ''}" 
+                                 data-avatar="${a}" 
+                                 onclick="appInstance.selectEditAvatar(this)"
+                                 style="font-size: 2rem; padding: 10px; border: 2px solid ${this.stats.avatar === a ? 'var(--primary-color)' : 'transparent'}; border-radius: 12px; cursor: pointer; background: var(--bg-main); text-align: center;">
+                                 ${a}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button class="btn-primary" onclick="appInstance.saveProfile()">Guardar Cambios</button>
+                    <button class="btn-secondary" onclick="appInstance.renderProfile()" style="background: #eee; color: #555; box-shadow: 0 4px 0 #ccc;">Cancelar</button>
+                </div>
+            </div>
+        `;
+    }
+
+    selectEditAvatar(el) {
+        document.querySelectorAll('.edit-profile-form .avatar-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.style.borderColor = 'transparent';
+        });
+        el.classList.add('selected');
+        el.style.borderColor = 'var(--primary-color)';
+        this.tempAvatar = el.getAttribute('data-avatar');
+    }
+
+    saveProfile() {
+        const newName = document.getElementById('edit-username').value.trim();
+        if (!newName) {
+            alert('El nombre no puede estar vacío.');
+            return;
+        }
+        
+        this.stats.username = newName;
+        if (this.tempAvatar) {
+            this.stats.avatar = this.tempAvatar;
+        }
+        this.saveStats();
+        this.renderProfile();
+        this.updateStatsDisplay();
+    }
+
+    showDiploma() {
+        const overlay = document.getElementById('diploma-overlay');
+        document.getElementById('diploma-user-name').innerText = this.stats.username || 'Explorador';
+        
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long' };
+        document.getElementById('diploma-current-date').innerText = now.toLocaleDateString('es-ES', options);
+        
+        overlay.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async downloadDiplomaImage() {
+        const capture = document.getElementById('diploma-capture');
+        const canvas = await html2canvas(capture, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        });
+        
+        const link = document.createElement('a');
+        link.download = `Diploma_Geografiapp_${this.stats.username}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    async downloadDiplomaPDF() {
+        const capture = document.getElementById('diploma-capture');
+        const canvas = await html2canvas(capture, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Diploma_Geografiapp_${this.stats.username}.pdf`);
     }
 
     renderBadge(name, desc, icon, isUnlocked, extraClass = '') {
@@ -1113,6 +1234,14 @@ class App {
         if (gemsEl) gemsEl.innerText = `+${gemsEarned} Gemas`;
 
         this.switchView('success');
+
+        // Verificar si es el nivel 30 para el diploma
+        if (this.stats.completedLessons.length === 30) {
+            setTimeout(() => {
+                alert('¡FELICIDADES! Has alcanzado el Nivel 30. ¡Ya puedes descargar tu Diploma de Maestro Explorador en tu perfil!');
+                this.showDiploma();
+            }, 1000);
+        }
     }
 
     updateLessonProgress() {

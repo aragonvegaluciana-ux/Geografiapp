@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Librerías para Diploma -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -183,26 +186,52 @@
             </div>
         </main>
 
-        <!-- Right Panel (Desktop) -->
-        <aside class="right-panel">
-            <div class="card promo-card">
-                <img src="assets/mascot.png" alt="Mascota Geo" class="mascot-img">
-                <h3>¡Hola, soy Geo!</h3>
-                <p>¿Listo para explorar el mundo hoy?</p>
-                <button id="btn-start-next-lesson" class="btn-secondary">Empezar Lección</button>
-            </div>
-            <div class="card stats-card">
-                <h3>Estadísticas</h3>
-                <div class="mini-stat">
-                    <span>Nivel</span>
-                    <strong id="right-panel-level">1</strong>
-                </div>
-                <div class="mini-stat">
-                    <span>XP Total</span>
-                    <strong id="right-panel-xp">0</strong>
-                </div>
-            </div>
         </aside>
+
+        <!-- Hidden Diploma Template -->
+        <div id="diploma-overlay" class="diploma-overlay hidden">
+            <div class="diploma-modal">
+                <button id="close-diploma" class="close-diploma">&times;</button>
+                <div id="diploma-capture" class="diploma-container">
+                    <div class="diploma-border">
+                        <div class="diploma-content">
+                            <div class="diploma-header">
+                                <span class="diploma-icon">🌍</span>
+                                <h1>GeografíApp</h1>
+                            </div>
+                            <div class="diploma-body">
+                                <p class="diploma-certifies">CERTIFICA QUE</p>
+                                <h2 id="diploma-user-name">Explorador</h2>
+                                <p class="diploma-text">ha completado con éxito todos los desafíos de exploración mundial, demostrando un conocimiento excepcional de países, capitales y continentes.</p>
+                                <div class="diploma-rank">Grado de Maestro Explorador</div>
+                            </div>
+                            <div class="diploma-footer">
+                                <div class="diploma-signature">
+                                    <div class="signature-line"></div>
+                                    <p>Equipo GeografíApp</p>
+                                </div>
+                                <div class="diploma-seal">
+                                    <div class="seal-inner">⭐</div>
+                                </div>
+                                <div class="diploma-date">
+                                    <div class="signature-line"></div>
+                                    <p id="diploma-current-date">Mayo, 2026</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="diploma-actions">
+                    <button id="btn-download-img" class="btn-secondary">
+                        <i data-lucide="image"></i> Descargar Imagen
+                    </button>
+                    <button id="btn-download-pdf" class="btn-primary">
+                        <i data-lucide="file-text"></i> Descargar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 
     <script src="app.js"></script>
