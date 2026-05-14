@@ -489,14 +489,6 @@ class App {
             
             window.location.reload();
         });
-
-        // Event listeners for Diploma
-        document.getElementById('close-diploma').addEventListener('click', () => {
-            document.getElementById('diploma-overlay').classList.add('hidden');
-        });
-
-        document.getElementById('btn-download-img').addEventListener('click', () => this.downloadDiplomaImage());
-        document.getElementById('btn-download-pdf').addEventListener('click', () => this.downloadDiplomaPDF());
     }
 
     applyTheme() {
@@ -563,6 +555,24 @@ class App {
                 const lesson = generateLesson(nextLevel, this.stats);
                 this.startLesson(lesson);
             });
+        }
+
+        // Diploma Listeners
+        const closeDiplomaBtn = document.getElementById('close-diploma');
+        if (closeDiplomaBtn) {
+            closeDiplomaBtn.addEventListener('click', () => {
+                document.getElementById('diploma-overlay').classList.add('hidden');
+            });
+        }
+
+        const downloadImgBtn = document.getElementById('btn-download-img');
+        if (downloadImgBtn) {
+            downloadImgBtn.addEventListener('click', () => this.downloadDiplomaImage());
+        }
+
+        const downloadPdfBtn = document.getElementById('btn-download-pdf');
+        if (downloadPdfBtn) {
+            downloadPdfBtn.addEventListener('click', () => this.downloadDiplomaPDF());
         }
     }
 
@@ -702,6 +712,9 @@ class App {
                     <button class="btn-edit" onclick="appInstance.showEditProfile()">
                         <i data-lucide="edit-3"></i> Editar Perfil
                     </button>
+                    <button class="btn-primary" style="width: auto; padding: 10px 24px; background: var(--color-accent);" onclick="appInstance.showDiploma()">
+                        <i data-lucide="award"></i> Probar Diploma
+                    </button>
                     ${this.stats.completedLessons.length >= 10 ? `
                         <button class="btn-primary" style="width: auto; padding: 10px 24px;" onclick="appInstance.showDiploma()">
                             <i data-lucide="award"></i> Ver Diploma
@@ -812,33 +825,81 @@ class App {
 
     async downloadDiplomaImage() {
         const capture = document.getElementById('diploma-capture');
-        const canvas = await html2canvas(capture, {
-            scale: 2,
-            backgroundColor: '#ffffff'
-        });
-        
-        const link = document.createElement('a');
-        link.download = `Diploma_Geografiapp_${this.stats.username}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        if (!capture) return;
+
+        try {
+            const canvas = await html2canvas(capture, {
+                scale: 3, // Mayor calidad
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            const link = document.createElement('a');
+            link.download = `Diploma_Geografiapp_${this.stats.username || 'Explorador'}.png`;
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        } catch (error) {
+            console.error("Error al generar imagen:", error);
+            alert("Hubo un error al generar la imagen. Inténtalo de nuevo.");
+        }
     }
 
     async downloadDiplomaPDF() {
         const capture = document.getElementById('diploma-capture');
-        const canvas = await html2canvas(capture, {
-            scale: 2,
-            backgroundColor: '#ffffff'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('l', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Diploma_Geografiapp_${this.stats.username}.pdf`);
+        if (!capture) return;
+
+        // Feedback visual de carga
+        const pdfBtn = document.getElementById('btn-download-pdf');
+        const originalText = pdfBtn.innerHTML;
+        pdfBtn.innerHTML = '<i data-lucide="loader-2"></i> Generando...';
+        pdfBtn.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            // Asegurarnos de que el modal sea visible y los estilos aplicados
+            const overlay = document.getElementById('diploma-overlay');
+            overlay.classList.remove('hidden');
+
+            const canvas = await html2canvas(capture, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            
+            // Acceso ultra-robusto a jsPDF
+            const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+            if (!jsPDFConstructor) {
+                throw new Error("Librería jsPDF no encontrada. Verifica tu conexión a internet.");
+            }
+
+            const pdf = new jsPDFConstructor({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
+            
+            pdf.addImage(imgData, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
+            pdf.save(`Diploma_Geografiapp_${this.stats.username || 'Explorador'}.pdf`);
+        } catch (error) {
+            console.error("Error al generar PDF:", error);
+            alert("Error: " + error.message);
+        } finally {
+            pdfBtn.innerHTML = originalText;
+            pdfBtn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
     }
 
     renderBadge(name, desc, icon, isUnlocked, extraClass = '') {
@@ -872,6 +933,17 @@ class App {
                         <input type="checkbox" ${this.stats.darkMode ? 'checked' : ''} onchange="appInstance.toggleDarkMode()">
                         <span class="slider round"></span>
                     </label>
+                </div>
+
+                <div class="setting-card">
+                    <div class="setting-info">
+                        <i data-lucide="award"></i>
+                        <div>
+                            <h4>Modo Desarrollador</h4>
+                            <p>Probar visualización del diploma</p>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" style="padding: 0.5rem 1rem; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; width: auto; background: var(--color-accent);" onclick="appInstance.showDiploma()">Probar Diploma</button>
                 </div>
 
                 <div class="setting-card">
