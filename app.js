@@ -1,3 +1,23 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDLkz4mlGYwwGAo6lmFhyQKi8kkxaxENIo",
+  authDomain: "geografiapp-feb0a.firebaseapp.com",
+  projectId: "geografiapp-feb0a",
+  storageBucket: "geografiapp-feb0a.firebasestorage.app",
+  messagingSenderId: "144979359231",
+  appId: "1:144979359231:web:8d70744b80bb449b3823ca",
+  measurementId: "G-HMKQ8VX13V"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const analytics = getAnalytics(firebaseApp);
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+
 // DATA SECTION
 // POOLS FOR GENERATION
 const geographyPool = {
@@ -347,7 +367,8 @@ const initialUserStats = {
     },
     hasLifeDoubler: false, // Propiedad obsoleta a eliminar en futuras migraciones
     darkMode: false,
-    musicEnabled: true
+    musicEnabled: true,
+    friends: []
 };
 
 const shopItems = [
@@ -394,7 +415,7 @@ class App {
         this.currentLesson = null;
         this.currentExerciseIndex = 0;
         this.selectedOption = null;
-        this.stats = this.loadStats();
+        this.stats = { ...initialUserStats };
         
         // Inicializar el gestor de música
         this.music = new MusicManager();
@@ -402,41 +423,112 @@ class App {
         // Track session performance
         this.sessionCorrect = 0;
         this.sessionTotal = 0;
-        
-        this.init();
     }
 
-    loadStats() {
-        const saved = localStorage.getItem('geografiapp_stats');
-        const stats = saved ? JSON.parse(saved) : { ...initialUserStats };
-        
-        // Migración: Asegurar que todos los campos nuevos existen
-        return {
-            ...initialUserStats,
-            ...stats,
-            seenQuestions: stats.seenQuestions || [],
-            inventory: {
-                ...initialUserStats.inventory,
-                ...(stats.inventory || {})
+    async initializeApp() {
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                this.userId = user.uid;
+                await this.loadStats();
+                if (!this.stats.username) {
+                    // Profile not created yet in DB
+                }
+                this.init();
+            } else {
+                this.userId = null;
+                this.stats = { ...initialUserStats };
+                
+                const sidebar = document.getElementById('sidebar');
+                const rightPanel = document.querySelector('.right-panel');
+                if(sidebar) sidebar.style.display = 'none';
+                if(rightPanel) rightPanel.style.display = 'none';
+                
+                this.setupOnboarding();
+                this.switchView('onboarding');
+                this.applyTheme();
             }
-        };
+        });
     }
 
-    saveStats() {
-        localStorage.setItem('geografiapp_stats', JSON.stringify(this.stats));
+    async loadStats() {
+        try {
+            const docRef = doc(db, "users", this.userId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const stats = docSnap.data();
+                this.stats = {
+                    ...initialUserStats,
+                    ...stats,
+                    seenQuestions: stats.seenQuestions || [],
+                    inventory: {
+                        ...initialUserStats.inventory,
+                        ...(stats.inventory || {})
+                    }
+                };
+            } else {
+                const saved = localStorage.getItem('geografiapp_stats');
+                if (saved) {
+                    this.stats = { ...initialUserStats, ...JSON.parse(saved) };
+                    await this.saveStats();
+                } else {
+                    this.stats = { ...initialUserStats };
+                }
+            }
+        } catch (e) {
+            console.error("Error cargando de Firebase, usando local", e);
+            const saved = localStorage.getItem('geografiapp_stats');
+            this.stats = saved ? { ...initialUserStats, ...JSON.parse(saved) } : { ...initialUserStats };
+        }
+    }
+
+    async saveStats() {
+        try {
+            localStorage.setItem('geografiapp_stats', JSON.stringify(this.stats));
+            if (this.stats.username) {
+                await setDoc(doc(db, "users", this.userId), this.stats);
+            }
+        } catch (e) {
+            console.error("Error guardando en Firebase", e);
+        }
+    }
+
+    async addFriend(friendUsername) {
+        if (!friendUsername || friendUsername.trim() === '') return;
+        if (friendUsername === this.stats.username) {
+            alert("No puedes agregarte a ti mismo.");
+            return;
+        }
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", friendUsername.trim()), limit(1));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                alert("No se encontró ningún explorador con ese nombre.");
+                return;
+            }
+            
+            let friendId = null;
+            querySnapshot.forEach((doc) => { friendId = doc.id; });
+            
+            if (this.stats.friends && this.stats.friends.includes(friendId)) {
+                alert("Este explorador ya es tu amigo.");
+                return;
+            }
+            
+            if (!this.stats.friends) this.stats.friends = [];
+            this.stats.friends.push(friendId);
+            await this.saveStats();
+            alert("¡Amigo agregado con éxito!");
+            this.renderLeaderboard('friends');
+        } catch (e) {
+            console.error("Error agregando amigo", e);
+            alert("Hubo un error al agregar al amigo.");
+        }
     }
 
     init() {
         if (!this.stats.username) {
-            // Show onboarding
-            const sidebar = document.getElementById('sidebar');
-            const rightPanel = document.querySelector('.right-panel');
-            if(sidebar) sidebar.style.display = 'none';
-            if(rightPanel) rightPanel.style.display = 'none';
-            
-            this.setupOnboarding();
-            this.switchView('onboarding');
-            this.applyTheme();
             return;
         }
 
@@ -446,7 +538,10 @@ class App {
         if(rightPanel) rightPanel.style.display = '';
 
         this.renderPath();
-        this.setupEventListeners();
+        if (!this.initialized) {
+            this.setupEventListeners();
+            this.initialized = true;
+        }
         this.updateStatsDisplay();
         this.applyTheme();
         
@@ -461,12 +556,14 @@ class App {
         };
         document.addEventListener('click', startMusic);
         document.addEventListener('keydown', startMusic);
+        
+        this.switchView('learn');
     }
 
     setupOnboarding() {
         let selectedAvatar = '🚀';
         document.querySelectorAll('.avatar-option').forEach(opt => {
-            opt.addEventListener('click', () => {
+            opt.onclick = () => {
                 document.querySelectorAll('.avatar-option').forEach(o => {
                     o.classList.remove('selected');
                     o.style.borderColor = 'transparent';
@@ -474,21 +571,64 @@ class App {
                 opt.classList.add('selected');
                 opt.style.borderColor = 'var(--primary-color)';
                 selectedAvatar = opt.getAttribute('data-avatar');
-            });
+            };
         });
 
-        document.getElementById('btn-create-profile').addEventListener('click', () => {
-            const nameInput = document.getElementById('onboarding-username').value.trim();
-            if (!nameInput) {
-                alert('Por favor, ingresa tu nombre para continuar.');
-                return;
+        const tabLogin = document.getElementById('tab-login');
+        const tabReg = document.getElementById('tab-register');
+        const formLogin = document.getElementById('form-login');
+        const formReg = document.getElementById('form-register');
+
+        if(tabLogin) tabLogin.onclick = () => {
+            tabLogin.classList.add('active');
+            tabLogin.style.color = 'var(--primary-color)';
+            tabLogin.style.borderBottomColor = 'var(--primary-color)';
+            tabReg.classList.remove('active');
+            tabReg.style.color = 'var(--text-secondary)';
+            tabReg.style.borderBottomColor = 'transparent';
+            formLogin.style.display = 'block';
+            formReg.style.display = 'none';
+        };
+
+        if(tabReg) tabReg.onclick = () => {
+            tabReg.classList.add('active');
+            tabReg.style.color = 'var(--primary-color)';
+            tabReg.style.borderBottomColor = 'var(--primary-color)';
+            tabLogin.classList.remove('active');
+            tabLogin.style.color = 'var(--text-secondary)';
+            tabLogin.style.borderBottomColor = 'transparent';
+            formReg.style.display = 'block';
+            formLogin.style.display = 'none';
+        };
+
+        const btnLogin = document.getElementById('btn-login');
+        if(btnLogin) btnLogin.onclick = async () => {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            if(!email || !pass) return alert("Llena todos los campos.");
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch(e) {
+                alert("Error al iniciar sesión: " + e.message);
             }
-            this.stats.username = nameInput;
-            this.stats.avatar = selectedAvatar;
-            this.saveStats();
+        };
+
+        const btnReg = document.getElementById('btn-register');
+        if(btnReg) btnReg.onclick = async () => {
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-password').value;
+            const name = document.getElementById('reg-username').value.trim();
+            if(!email || !pass || !name) return alert("Llena todos los campos.");
             
-            window.location.reload();
-        });
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                this.userId = cred.user.uid;
+                this.stats = { ...initialUserStats, username: name, avatar: selectedAvatar };
+                await this.saveStats();
+            } catch(e) {
+                alert("Error al registrarse: " + e.message);
+            }
+        };
     }
 
     applyTheme() {
@@ -558,22 +698,26 @@ class App {
         }
 
         // Diploma Listeners
+        const overlay = document.getElementById('diploma-overlay');
         const closeDiplomaBtn = document.getElementById('close-diploma');
+        
         if (closeDiplomaBtn) {
-            closeDiplomaBtn.addEventListener('click', () => {
-                document.getElementById('diploma-overlay').classList.add('hidden');
+            closeDiplomaBtn.addEventListener('click', () => overlay.classList.add('hidden'));
+        }
+
+        // Cerrar al hacer clic fuera del diploma
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.add('hidden');
             });
         }
 
-        const downloadImgBtn = document.getElementById('btn-download-img');
-        if (downloadImgBtn) {
-            downloadImgBtn.addEventListener('click', () => this.downloadDiplomaImage());
-        }
-
-        const downloadPdfBtn = document.getElementById('btn-download-pdf');
-        if (downloadPdfBtn) {
-            downloadPdfBtn.addEventListener('click', () => this.downloadDiplomaPDF());
-        }
+        // Cerrar con la tecla Escape
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay && !overlay.classList.contains('hidden')) {
+                overlay.classList.add('hidden');
+            }
+        });
     }
 
     switchView(viewId) {
@@ -640,61 +784,208 @@ class App {
         if (window.lucide) lucide.createIcons();
     }
 
-    renderLeaderboard() {
+    async renderLeaderboard(activeTab = 'friends') {
         const view = document.getElementById('view-leaderboard');
         if (!view) return;
 
-        const sortedRanking = [...ranking];
-        const userRank = sortedRanking.find(r => r.name === 'Tú');
-        if (userRank) {
-            userRank.xp = this.stats.xp;
-            userRank.name = this.stats.username || 'Tú';
-            userRank.avatar = this.stats.avatar || '🚀';
+        const leagueConfig = {
+            'Bronce':   { icon: '🥉', gradient: 'linear-gradient(135deg, #cd7f32, #ffb88c)', shadow: 'rgba(205,127,50,0.3)' },
+            'Plata':    { icon: '🥈', gradient: 'linear-gradient(135deg, #9e9e9e, #e0e0e0)', shadow: 'rgba(158,158,158,0.3)' },
+            'Oro':      { icon: '🥇', gradient: 'linear-gradient(135deg, #f9a825, #ffe082)', shadow: 'rgba(249,168,37,0.3)' },
+            'Diamante': { icon: '💎', gradient: 'linear-gradient(135deg, #0288d1, #80deea)', shadow: 'rgba(2,136,209,0.3)' },
+        };
+        const league = this.stats.league || 'Bronce';
+        const lc = leagueConfig[league] || leagueConfig['Bronce'];
+
+        const now = new Date();
+        const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+        const endDate = new Date(now);
+        endDate.setDate(now.getDate() + daysUntilSunday);
+        endDate.setHours(23, 59, 59, 0);
+        const msLeft = endDate - now;
+        const hoursLeft = Math.floor(msLeft / 3600000);
+        const minutesLeft = Math.floor((msLeft % 3600000) / 60000);
+        const countdownStr = hoursLeft >= 24
+            ? `${Math.floor(hoursLeft / 24)}d ${hoursLeft % 24}h restantes`
+            : `${hoursLeft}h ${minutesLeft}m restantes`;
+
+        let currentRanking = [];
+        const userName = this.stats.username || 'Tú';
+
+        if (activeTab === 'global') {
+            try {
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, orderBy("xp", "desc"), limit(50));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((d) => {
+                    const data = d.data();
+                    currentRanking.push({ name: data.username || 'Anónimo', xp: data.xp || 0, avatar: data.avatar || '🚀', trend: 'same' });
+                });
+            } catch (e) {
+                console.error("Error fetching global leaderboard", e);
+                currentRanking = [{ name: 'Error cargando datos', xp: 0, avatar: '❌', trend: 'same' }];
+            }
+        } else if (activeTab === 'friends') {
+            currentRanking.push({ name: userName, xp: this.stats.xp, avatar: this.stats.avatar || '🚀', trend: 'same' });
+            if (this.stats.friends && this.stats.friends.length > 0) {
+                try {
+                    const friendPromises = this.stats.friends.map(fid => getDoc(doc(db, "users", fid)));
+                    const docs = await Promise.all(friendPromises);
+                    docs.forEach(d => {
+                        if (d.exists()) {
+                            const data = d.data();
+                            currentRanking.push({ name: data.username || 'Anónimo', xp: data.xp || 0, avatar: data.avatar || '🚀', trend: 'same' });
+                        }
+                    });
+                } catch (e) {
+                    console.error("Error fetching friends", e);
+                }
+            }
+            currentRanking.sort((a, b) => b.xp - a.xp);
         }
-        sortedRanking.sort((a, b) => b.xp - a.xp);
+
+        const maxXp = currentRanking[0]?.xp || 1;
+
+        const trendIcon = (trend) => {
+            if (trend === 'up')   return '<span class="trend trend-up">▲</span>';
+            if (trend === 'down') return '<span class="trend trend-down">▼</span>';
+            return '<span class="trend trend-same">—</span>';
+        };
+
+        const medalFor = (i) => {
+            if (i === 0) return '<span class="medal medal-gold">🥇</span>';
+            if (i === 1) return '<span class="medal medal-silver">🥈</span>';
+            if (i === 2) return '<span class="medal medal-bronze">🥉</span>';
+            return `<span class="rank-num">${i + 1}</span>`;
+        };
+
+        const top3 = currentRanking.slice(0, 3);
+        const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+        const podiumHeights = top3[1] ? ['80px','110px','60px'] : ['0','110px','0'];
+        const podiumPositions = [2, 1, 3];
+
+        const renderPodiumItem = (player, heightIdx) => {
+            if (!player) return '<div class="podium-slot empty"></div>';
+            const isUser = player.name === userName;
+            return `
+                <div class="podium-slot ${isUser ? 'podium-user' : ''}">
+                    <div class="podium-avatar">${player.avatar}</div>
+                    <div class="podium-name">${player.name.length > 8 ? player.name.slice(0,7)+'…' : player.name}</div>
+                    <div class="podium-xp">${player.xp} XP</div>
+                    <div class="podium-bar" style="height:${podiumHeights[heightIdx]}">
+                        <span class="podium-rank">${podiumPositions[heightIdx]}°</span>
+                    </div>
+                </div>
+            `;
+        };
+
+        const userPosition = currentRanking.findIndex(p => p.name === userName);
+        const isPromotion = userPosition < 3;
+        const isDemotion = userPosition >= currentRanking.length - 2;
+
+        let friendsUI = '';
+        if (activeTab === 'friends') {
+            friendsUI = `
+                <div style="padding: 15px; text-align: center; background: var(--bg-card); border-radius: 12px; margin-bottom: 15px;">
+                    <h3 style="margin-top:0; font-size: 1.2rem;">Añadir Amigo</h3>
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <input type="text" id="friend-username-input" placeholder="Nombre de Explorador" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); flex:1; max-width:250px; font-family: inherit;">
+                        <button id="btn-add-friend" class="btn-primary" style="padding: 8px 20px; width: auto; min-width: auto; height: auto;">Buscar y Añadir</button>
+                    </div>
+                </div>
+            `;
+        }
 
         view.innerHTML = `
-            <div class="league-header">
-                <div class="league-icon">🛡️</div>
+            <div class="league-header" style="background: ${lc.gradient}; box-shadow: 0 8px 24px ${lc.shadow};">
+                <div class="league-icon-wrap">
+                    <div class="league-icon-big">${lc.icon}</div>
+                </div>
                 <div class="league-info">
-                    <h2>Liga de ${this.stats.league || 'Bronce'}</h2>
-                    <p>Faltan 3 días para que termine la liga</p>
+                    <h2>Liga ${league}</h2>
+                    <p class="league-countdown">⏱ ${countdownStr}</p>
+                    ${activeTab !== 'friends' ? `
+                    <div class="league-status-badges">
+                        ${isPromotion ? '<span class="status-badge badge-promote">⬆ Zona de Ascenso</span>' : ''}
+                        ${isDemotion && !isPromotion ? '<span class="status-badge badge-demote">⬇ Zona de Descenso</span>' : ''}
+                        ${!isPromotion && !isDemotion ? '<span class="status-badge badge-safe">✔ Zona Segura</span>' : ''}
+                    </div>` : ''}
                 </div>
             </div>
-            
+
             <div class="leaderboard-container">
                 <div class="leaderboard-tabs">
-                    <div class="tab active">Tu División</div>
-                    <div class="tab">Global</div>
+                    <div class="tab ${activeTab === 'friends' ? 'active' : ''}" id="tab-friends">👥 Amigos</div>
+                    <div class="tab ${activeTab === 'global' ? 'active' : ''}" id="tab-global">🌐 Global</div>
                 </div>
-                
+
+                ${friendsUI}
+
+                <!-- Podio -->
+                <div class="podium-container">
+                    ${podiumOrder.map((p, i) => renderPodiumItem(p, i)).join('')}
+                </div>
+
+                <!-- Lista completa -->
                 <div class="leaderboard-list">
-                    <div class="promotion-zone-label">Zona de Ascenso</div>
-                    ${sortedRanking.map((player, index) => {
-                        const isUser = player.name === (this.stats.username || 'Tú');
-                        const isPromotion = index < 3;
+                    ${currentRanking.length > 3 ? '<div class="zone-label zone-middle">Clasificación General</div>' : ''}
+                    ${currentRanking.map((player, index) => {
+                        const isUser = player.name === userName;
+                        const isPromZone = index < 3 && activeTab !== 'friends';
+                        const isDemZone = index >= currentRanking.length - 2 && activeTab !== 'friends';
+                        const barWidth = maxXp > 0 ? Math.max(4, Math.round((player.xp / maxXp) * 100)) : 4;
                         return `
-                            <div class="leaderboard-item ${isUser ? 'user-row' : ''} ${isPromotion ? 'promotion' : ''}">
-                                <span class="rank">${index + 1}</span>
+                            <div class="leaderboard-item ${isUser ? 'user-row' : ''} ${isPromZone ? 'promotion' : ''} ${isDemZone && !isPromZone ? 'demotion' : ''}" style="animation-delay:${index * 0.05}s">
+                                <div class="rank-col">${medalFor(index)}</div>
                                 <span class="avatar">${player.avatar}</span>
-                                <div class="player-info">
-                                    <span class="name">${player.name}</span>
-                                    ${isUser ? '<span class="you-tag">TÚ</span>' : ''}
+                                <div class="player-info-col">
+                                    <div class="player-name-row">
+                                        <span class="name">${player.name}</span>
+                                        ${isUser ? '<span class="you-tag">TÚ</span>' : ''}
+                                        ${trendIcon(player.trend || 'same')}
+                                    </div>
+                                    <div class="xp-bar-wrap">
+                                        <div class="xp-bar-fill" style="width: ${barWidth}%"></div>
+                                    </div>
                                 </div>
                                 <div class="xp-container">
-                                    <span class="xp-val">${player.xp}</span>
+                                    <span class="xp-val">${player.xp.toLocaleString()}</span>
                                     <span class="xp-unit">XP</span>
                                 </div>
                             </div>
                         `;
                     }).join('')}
+                    ${activeTab !== 'friends' ? '<div class="zone-label zone-demotion">⬇ Zona de Descenso (últimos 2)</div>' : ''}
                 </div>
             </div>
-            
+
+            ${activeTab !== 'friends' ? `
             <div class="leaderboard-footer">
-                <p>¡Los 3 mejores avanzan a la siguiente liga!</p>
-            </div>
+                <div class="footer-info">
+                    <span>🏆 Top 3 ascienden a Liga ${league === 'Bronce' ? 'Plata' : league === 'Plata' ? 'Oro' : league === 'Oro' ? 'Diamante' : 'Maestro'}</span>
+                    <span>💀 Últimos 2 descienden</span>
+                </div>
+            </div>` : ''}
         `;
+
+        // Tabs funcionales
+        document.getElementById('tab-global')?.addEventListener('click', () => this.renderLeaderboard('global'));
+        document.getElementById('tab-friends')?.addEventListener('click', () => this.renderLeaderboard('friends'));
+
+        const btnAddFriend = document.getElementById('btn-add-friend');
+        if (btnAddFriend) {
+            btnAddFriend.addEventListener('click', () => {
+                const friendUsername = document.getElementById('friend-username-input').value;
+                this.addFriend(friendUsername);
+            });
+        }
+
+        // Animación de barras XP al cargar
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.xp-bar-fill').forEach(bar => {
+                bar.style.transition = 'width 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
+            });
+        });
     }
 
     renderProfile() {
@@ -720,6 +1011,9 @@ class App {
                             <i data-lucide="award"></i> Ver Diploma
                         </button>
                     ` : ''}
+                    <button class="btn-secondary" style="width: auto; padding: 10px 24px; margin-top: 10px; border-color: #ff4b4b; color: #ff4b4b;" onclick="appInstance.signOut()">
+                        <i data-lucide="log-out"></i> Cerrar Sesión
+                    </button>
                 </div>
             </div>
             <div class="profile-stats-grid">
@@ -828,10 +1122,13 @@ class App {
         if (!capture) return;
 
         try {
+            const overlay = document.getElementById('diploma-overlay');
+            overlay.classList.remove('hidden');
+
             const canvas = await html2canvas(capture, {
-                scale: 3, // Mayor calidad
+                scale: 2,
                 useCORS: true,
-                logging: false,
+                allowTaint: true,
                 backgroundColor: '#ffffff'
             });
             
@@ -840,8 +1137,7 @@ class App {
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
         } catch (error) {
-            console.error("Error al generar imagen:", error);
-            alert("Hubo un error al generar la imagen. Inténtalo de nuevo.");
+            console.error(error);
         }
     }
 
@@ -849,56 +1145,55 @@ class App {
         const capture = document.getElementById('diploma-capture');
         if (!capture) return;
 
-        // Feedback visual de carga
         const pdfBtn = document.getElementById('btn-download-pdf');
         const originalText = pdfBtn.innerHTML;
-        pdfBtn.innerHTML = '<i data-lucide="loader-2"></i> Generando...';
         pdfBtn.disabled = true;
-        if (window.lucide) lucide.createIcons();
 
         try {
-            // Asegurarnos de que el modal sea visible y los estilos aplicados
             const overlay = document.getElementById('diploma-overlay');
             overlay.classList.remove('hidden');
 
             const canvas = await html2canvas(capture, {
-                scale: 3,
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                logging: false,
                 backgroundColor: '#ffffff'
             });
             
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            
-            // Acceso ultra-robusto a jsPDF
+            const imgData = canvas.toDataURL('image/png');
             const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-            if (!jsPDFConstructor) {
-                throw new Error("Librería jsPDF no encontrada. Verifica tu conexión a internet.");
-            }
-
+            
             const pdf = new jsPDFConstructor({
                 orientation: 'landscape',
                 unit: 'mm',
-                format: 'a4',
-                compress: true
+                format: 'a4'
             });
 
             const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-            
             const yPos = (pdf.internal.pageSize.getHeight() - pdfHeight) / 2;
             
             pdf.addImage(imgData, 'PNG', 0, yPos > 0 ? yPos : 0, pdfWidth, pdfHeight);
-            pdf.save(`Diploma_Geografiapp_${this.stats.username || 'Explorador'}.pdf`);
+            
+            const fileName = `Diploma_Geografiapp_${this.stats.username || 'Explorador'}.pdf`;
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
         } catch (error) {
-            console.error("Error al generar PDF:", error);
-            alert("Error: " + error.message);
+            console.error(error);
         } finally {
-            pdfBtn.innerHTML = originalText;
             pdfBtn.disabled = false;
-            if (window.lucide) lucide.createIcons();
         }
     }
 
@@ -1017,9 +1312,16 @@ class App {
         if (confirm1) {
             const confirm2 = confirm("¡Última oportunidad! Esta acción es irreversible. ¿Realmente quieres empezar de cero?");
             if (confirm2) {
-                localStorage.removeItem('geografiapp_stats');
-                window.location.reload();
+                this.stats = { ...initialUserStats, username: this.stats.username, avatar: this.stats.avatar };
+                this.saveStats().then(() => window.location.reload());
             }
+        }
+    }
+
+    async signOut() {
+        if (confirm("¿Seguro que quieres cerrar sesión?")) {
+            await signOut(auth);
+            window.location.reload();
         }
     }
 
@@ -1347,4 +1649,5 @@ class App {
 // Initialize App
 window.addEventListener('DOMContentLoaded', () => {
     window.appInstance = new App();
+    window.appInstance.initializeApp();
 });
